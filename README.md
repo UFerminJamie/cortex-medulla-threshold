@@ -18,6 +18,8 @@ The installed DSA image loads that Girder plugin and builds its browser bundle w
 
 The referenced Arterioral Hyalinosis repository is a **Slicer CLI job**. Its `ENTRYPOINT` launches `slicer_cli_web.cli_list_entrypoint`, which is correct for an analysis that DSA submits to a worker. Using that entrypoint here would replace the DSA Girder server process and remove the live browser panel. This plugin therefore keeps the Girder entrypoint and inherits the DSA server entrypoint from `dsarchive/dsa_common`.
 
+> **Do not register this image as a Slicer CLI image.** DSA's CLI image loader runs `--list_cli` to discover job interfaces. This image is a Girder server image, so that check is expected to fail. The plugin adds its panel under HistomicsUI's **Analyses** menu, but runs locally in the viewer's browser; it does not appear as a job in the Slicer CLI image list. Install it by setting the existing DSA Compose stack's `girder` service to this image (see below).
+
 ## Build and publish
 
 ```sh
