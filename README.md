@@ -8,8 +8,10 @@ The live preview shows translucent filled regions. Saving writes separate merged
 
 This is a **Girder web-client plugin**, so its Python package entrypoint is declared in `setup.py`:
 
-```ini
- girder.plugin = threshold_mask = girder_threshold_mask:ThresholdMaskPlugin
+```python
+entry_points={"girder.plugin": [
+    "threshold_mask = girder_threshold_mask:ThresholdMaskPlugin",
+]}
 ```
 
 The installed DSA image loads that Girder plugin and builds its browser bundle with `girder build`. The browser worker and `polygon-clipping` asset are copied into the served static path by the Dockerfile.
