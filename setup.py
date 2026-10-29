@@ -12,4 +12,14 @@ setup(
         'threshold_mask = girder_threshold_mask:ThresholdMaskPlugin',
     ]},
     zip_safe=False,
+    data_files=[
+        (
+            "share/girder/static/built/plugins/threshold_mask",
+            [
+                "girder_threshold_mask/web_client/contour-worker.js",
+                "girder_threshold_mask/web_client/polygon-clipping.umd.min.js",
+                "girder_threshold_mask/web_client/polygon-clipping.LICENSE",
+            ],
+        ),
+    ],
 )
