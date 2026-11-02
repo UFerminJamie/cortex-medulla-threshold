@@ -4,14 +4,22 @@ const {test} = require('node:test');
 const logic = require('../girder_threshold_mask/web_client/logic');
 
 test('auto-detects refined cortex and medulla heatmaps independently', () => {
-    assert.deepEqual(logic.detectRefinedSources([
+    assert.deepEqual(logic.detectHeatmapSources([
         {id: 'old', name: 'cortical heatmap'},
         {id: 'medulla', name: 'Medullary Refined Heatmap'},
         {id: 'cortex', name: 'Cortical Refined Heatmap'}
     ]), {cortex: 'cortex', medulla: 'medulla'});
-    assert.deepEqual(logic.detectRefinedSources([
+    assert.deepEqual(logic.detectHeatmapSources([
         {id: 'cortex', name: 'Cortical Refined Heatmap'}
     ]), {cortex: 'cortex', medulla: ''});
+});
+
+test('auto-detects ordinary cortical and medullary heatmaps when refined maps are absent', () => {
+    assert.deepEqual(logic.detectHeatmapSources([
+        {id: 'cortex', name: 'Cortical Heatmap'},
+        {id: 'medulla', name: 'Medullary Heatmap'},
+        {id: 'other', name: 'Nuclei Heatmap'}
+    ]), {cortex: 'cortex', medulla: 'medulla'});
 });
 
 test('keeps only scored geometry and deduplicates a source selected in both roles', () => {

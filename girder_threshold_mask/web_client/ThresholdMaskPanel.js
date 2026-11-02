@@ -91,13 +91,13 @@ const ThresholdMaskPanel = View.extend({
             return;
         }
         const sources = this._sourceOptions(models);
-        const selected = mask.detectRefinedSources(sources);
+        const selected = mask.detectHeatmapSources(sources);
         const changed = classes.filter((kind) => !this.manualSources[kind] &&
             selected[kind] && selected[kind] !== this.sources[kind]);
         changed.forEach((kind) => { this.sources[kind] = selected[kind]; });
         [...new Set(changed.map((kind) => selected[kind]))].forEach((id) => this._loadSource(id));
         if (changed.length) {
-            this._setStatus('Refined heatmaps selected automatically. You can change either source.');
+            this._setStatus('Cortex and medulla heatmaps selected automatically. You can change either source.');
         }
     },
 

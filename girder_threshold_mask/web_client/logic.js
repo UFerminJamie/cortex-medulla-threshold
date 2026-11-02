@@ -18,9 +18,10 @@ function isClassHeatmapSource(source, kind) {
     return /heatmap/i.test(`${annotationName} ${layer}`) && className.test(`${annotationName} ${layer}`);
 }
 
-function detectRefinedSources(sources) {
+function detectHeatmapSources(sources) {
     const find = (kind) => {
-        return sources.find((source) => /refined/i.test(source.name) && isClassHeatmapSource(source, kind));
+        const matching = sources.filter((source) => isClassHeatmapSource(source, kind));
+        return matching.find((source) => /refined/i.test(`${source.name || ''} ${source.layer || ''}`)) || matching[0];
     };
     const cortex = find('cortex');
     const medulla = find('medulla');
@@ -48,4 +49,4 @@ function collectSourceElements(sources) {
     return elements;
 }
 
-module.exports = {formatThreshold, colorRgb, detectRefinedSources, classHeatmapSources, collectSourceElements};
+module.exports = {formatThreshold, colorRgb, detectHeatmapSources, classHeatmapSources, collectSourceElements};
