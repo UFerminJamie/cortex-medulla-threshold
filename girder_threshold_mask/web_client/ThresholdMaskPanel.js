@@ -228,6 +228,14 @@ const ThresholdMaskPanel = View.extend({
             if (this.viewer) {
                 this.viewer.removeAnnotation(model);
             }
+            if (((annotation.display || {}).visible) !== false) {
+                annotation.display = Object.assign({}, annotation.display, {visible: false});
+                model.set('annotation', annotation);
+                // Persist the default visibility as well as hiding the current
+                // viewer instance. Otherwise HistomicsUI shows this annotation
+                // again when it reloads annotations whose visibility is unset.
+                model.save().fail(() => {});
+            }
         });
     },
 
@@ -639,6 +647,7 @@ const ThresholdMaskPanel = View.extend({
                 itemId: this.itemId,
                 annotation: {
                     name: `threshold ${thresholdText} contour ${kind}`,
+                    display: {visible: false},
                     attributes: {thresholdContour: {
                         generatedBy: 'cortex-medulla-threshold-v1',
                         algorithmVersion: '0.2.0',
