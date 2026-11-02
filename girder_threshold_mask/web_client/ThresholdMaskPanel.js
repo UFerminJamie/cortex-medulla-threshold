@@ -19,6 +19,7 @@ const ThresholdMaskPanel = View.extend({
         'input .h-heatmap-threshold-number': '_thresholdNumberChanged',
         'change .h-heatmap-threshold-number': '_thresholdNumberReleased',
         'click .h-heatmap-reset': '_resetThreshold',
+        'click .h-threshold-preview-toggle': '_togglePreview',
         'input .h-mask-opacity': '_opacityChanged',
         'input .h-contour-line-width': '_lineWidthChanged',
         'click .h-mask-save': '_save',
@@ -32,6 +33,7 @@ const ThresholdMaskPanel = View.extend({
         this.detectEnabled = true;
         this.viewer = null;
         this.active = false;
+        this.previewVisible = true;
         this.threshold = 0;
         this.opacity = 0.5;
         this.lineWidth = 2;
@@ -110,6 +112,7 @@ const ThresholdMaskPanel = View.extend({
             threshold: this.threshold,
             opacity: this.opacity,
             lineWidth: this.lineWidth,
+            previewVisible: this.previewVisible,
             status: this.status,
             saving: this.saving,
             canSave: this.canSave && this._hasDisplayContours()
@@ -189,6 +192,8 @@ const ThresholdMaskPanel = View.extend({
             return;
         }
         this.active = true;
+        this.previewVisible = true;
+        this.render();
         router.setQuery('analysis', null, {trigger: false});
         events.trigger('query:analysis', null);
         this.imageView.controlPanel.$el.addClass('hidden');
@@ -199,8 +204,7 @@ const ThresholdMaskPanel = View.extend({
 
     close() {
         this.active = false;
-        this._clearPreviews();
-        this._hideSavedContours();
+        this.previewVisible = false;
         if (this.contourTimer !== null) {
             window.clearTimeout(this.contourTimer);
             this.contourTimer = null;
@@ -215,6 +219,8 @@ const ThresholdMaskPanel = View.extend({
         this.pendingFinal = false;
         this.sourceKey = '';
         this.saveWhenReady = false;
+        this._clearPreviews();
+        this._hideSavedContours();
         this.$el.addClass('hidden');
     },
 
@@ -539,6 +545,27 @@ const ThresholdMaskPanel = View.extend({
         this.$('.h-contour-line-width-value').text(`${this.lineWidth}px`);
     },
 
+    _togglePreview() {
+        this.previewVisible = !this.previewVisible;
+        this._updatePreviewToggle();
+        if (this.previewVisible) {
+            this._drawContours();
+        } else {
+            this._clearPreviews();
+        }
+    },
+
+    _updatePreviewToggle() {
+        const button = this.$('.h-threshold-preview-toggle');
+        button.attr('aria-pressed', String(this.previewVisible));
+        button.attr('title', this.previewVisible ? 'Hide threshold preview' : 'Show threshold preview');
+        button.find('.h-threshold-preview-icon')
+            .toggleClass('icon-eye', this.previewVisible)
+            .toggleClass('icon-eye-off', !this.previewVisible);
+        button.find('.h-threshold-preview-label')
+            .text(this.previewVisible ? 'Hide preview' : 'Show preview');
+    },
+
     _schedule(final = false) {
         const split = this._splitForThreshold(this.threshold);
         const wantedTolerance = final ? 0 : 8;
@@ -592,7 +619,8 @@ const ThresholdMaskPanel = View.extend({
     },
 
     _drawContours() {
-        if (!this._hasDisplayContours() || !this.viewer) {
+        if (!this.active || !this.previewVisible || !this._hasDisplayContours() || !this.viewer) {
+            this._clearPreviews();
             return;
         }
         this._clearPreviews();

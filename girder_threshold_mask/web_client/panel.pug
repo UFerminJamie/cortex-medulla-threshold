@@ -17,6 +17,9 @@
         each source in medullaSources
           option(value=source.id, selected=maskSources.medulla === source.id)= (source.get('annotation') || {}).name
       p.h-threshold-analysis-note Both selected heatmaps feed one threshold split. Regions can change class in either direction.
+      button.btn.btn-sm.btn-default.h-threshold-preview-toggle(type='button', aria-pressed=previewVisible, title=previewVisible ? 'Hide threshold preview' : 'Show threshold preview')
+        span.h-threshold-preview-icon(class=previewVisible ? 'icon-eye' : 'icon-eye-off', aria-hidden='true')
+        span.h-threshold-preview-label= previewVisible ? 'Hide preview' : 'Show preview'
       label(for='h-heatmap-threshold') Threshold: #[strong.h-heatmap-threshold-value #{threshold.toFixed(1)}]
       input.h-heatmap-threshold#h-heatmap-threshold(type='range', min='-5', max='5', step='0.1', value=threshold)
       label(for='h-heatmap-threshold-number') Type threshold
