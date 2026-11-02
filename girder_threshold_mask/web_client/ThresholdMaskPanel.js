@@ -71,14 +71,23 @@ const ThresholdMaskPanel = View.extend({
         });
     },
 
+    _sourceOptions(models) {
+        return models.map((model) => {
+            const annotation = model.get('annotation') || {};
+            return {
+                id: model.id,
+                name: annotation.name || '',
+                layer: (annotation.attributes || {}).layer || ''
+            };
+        });
+    },
+
     _detectSources(models) {
         if (!models.length) {
             return;
         }
-        const selected = mask.detectRefinedSources(models.map((model) => ({
-            id: model.id,
-            name: (model.get('annotation') || {}).name || ''
-        })));
+        const sources = this._sourceOptions(models);
+        const selected = mask.detectRefinedSources(sources);
         const changed = classes.filter((kind) => !this.manualSources[kind] &&
             selected[kind] && selected[kind] !== this.sources[kind]);
         changed.forEach((kind) => { this.sources[kind] = selected[kind]; });
@@ -90,11 +99,13 @@ const ThresholdMaskPanel = View.extend({
 
     render() {
         const models = this._availableSources();
+        const sources = this._sourceOptions(models);
         if (this.itemId && this.detectEnabled) {
             this._detectSources(models);
         }
         this.$el.html(panelTemplate({
-            sources: models,
+            cortexSources: mask.classHeatmapSources(sources, 'cortex').map((source) => this.collection.get(source.id)),
+            medullaSources: mask.classHeatmapSources(sources, 'medulla').map((source) => this.collection.get(source.id)),
             maskSources: this.sources,
             threshold: this.threshold,
             opacity: this.opacity,
@@ -189,6 +200,7 @@ const ThresholdMaskPanel = View.extend({
     close() {
         this.active = false;
         this._clearPreviews();
+        this._hideSavedContours();
         if (this.contourTimer !== null) {
             window.clearTimeout(this.contourTimer);
             this.contourTimer = null;
@@ -204,6 +216,19 @@ const ThresholdMaskPanel = View.extend({
         this.sourceKey = '';
         this.saveWhenReady = false;
         this.$el.addClass('hidden');
+    },
+
+    _hideSavedContours() {
+        this.collection.each((model) => {
+            const annotation = model.get('annotation') || {};
+            if (!((annotation.attributes || {}).thresholdContour)) {
+                return;
+            }
+            model.set('displayed', false);
+            if (this.viewer) {
+                this.viewer.removeAnnotation(model);
+            }
+        });
     },
 
     dispose() {
@@ -646,7 +671,7 @@ const ThresholdMaskPanel = View.extend({
                 return;
             }
             models.forEach((model) => {
-                model.set('displayed', true);
+                model.set('displayed', this.active);
                 this.collection.add(model);
             });
             this._clearPreviews();

@@ -5,16 +5,16 @@
 .s-panel-content.collapse.in
   .h-threshold-analysis-content
     p.h-threshold-analysis-note Runs in this browser. The slider shows translucent filled cortex and medulla regions without contour lines; no job is submitted.
-    if sources.length
+    if cortexSources.length || medullaSources.length
       label(for='h-cortex-source') Cortex source heatmap (optional)
       select.form-control.h-mask-source#h-cortex-source(data-kind='cortex')
         option(value='', selected=!maskSources.cortex) None
-        each source in sources
+        each source in cortexSources
           option(value=source.id, selected=maskSources.cortex === source.id)= (source.get('annotation') || {}).name
       label(for='h-medulla-source') Medulla source heatmap (optional)
       select.form-control.h-mask-source#h-medulla-source(data-kind='medulla')
         option(value='', selected=!maskSources.medulla) None
-        each source in sources
+        each source in medullaSources
           option(value=source.id, selected=maskSources.medulla === source.id)= (source.get('annotation') || {}).name
       p.h-threshold-analysis-note Both selected heatmaps feed one threshold split. Regions can change class in either direction.
       label(for='h-heatmap-threshold') Threshold: #[strong.h-heatmap-threshold-value #{threshold.toFixed(1)}]

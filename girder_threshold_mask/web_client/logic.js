@@ -2,15 +2,24 @@ function formatThreshold(threshold) {
     return String(Number(threshold.toFixed(1)));
 }
 
+function isClassHeatmapSource(source, kind) {
+    const className = kind === 'cortex' ? /cortical|cortex/i : /medullary|medulla/i;
+    const annotationName = (source || {}).name || '';
+    const layer = (source || {}).layer || '';
+    return /heatmap/i.test(`${annotationName} ${layer}`) && className.test(`${annotationName} ${layer}`);
+}
+
 function detectRefinedSources(sources) {
     const find = (kind) => {
-        const className = kind === 'cortex' ? /cortical|cortex/i : /medullary|medulla/i;
-        return sources.find((source) => /refined/i.test(source.name) &&
-            /heatmap/i.test(source.name) && className.test(source.name));
+        return sources.find((source) => /refined/i.test(source.name) && isClassHeatmapSource(source, kind));
     };
     const cortex = find('cortex');
     const medulla = find('medulla');
     return {cortex: cortex ? cortex.id : '', medulla: medulla ? medulla.id : ''};
+}
+
+function classHeatmapSources(sources, kind) {
+    return sources.filter((source) => isClassHeatmapSource(source, kind));
 }
 
 function collectSourceElements(sources) {
@@ -30,4 +39,4 @@ function collectSourceElements(sources) {
     return elements;
 }
 
-module.exports = {formatThreshold, detectRefinedSources, collectSourceElements};
+module.exports = {formatThreshold, detectRefinedSources, classHeatmapSources, collectSourceElements};
