@@ -20,6 +20,10 @@
       button.btn.btn-sm.btn-default.h-threshold-preview-toggle(type='button', aria-pressed=previewVisible, title=previewVisible ? 'Hide threshold preview' : 'Show threshold preview')
         span.h-threshold-preview-icon(class=previewVisible ? 'icon-eye' : 'icon-eye-off', aria-hidden='true')
         span.h-threshold-preview-label= previewVisible ? 'Hide preview' : 'Show preview'
+      label(for='h-cortex-color') Cortex color
+      input.h-mask-color#h-cortex-color(type='color', value=colors.cortex, data-kind='cortex')
+      label(for='h-medulla-color') Medulla color
+      input.h-mask-color#h-medulla-color(type='color', value=colors.medulla, data-kind='medulla')
       label(for='h-heatmap-threshold') Threshold: #[strong.h-heatmap-threshold-value #{threshold.toFixed(1)}]
       input.h-heatmap-threshold#h-heatmap-threshold(type='range', min='-5', max='5', step='0.1', value=threshold)
       label(for='h-heatmap-threshold-number') Type threshold
@@ -30,8 +34,8 @@
       label(for='h-contour-line-width') Saved contour line thickness: #[strong.h-contour-line-width-value #{lineWidth}px]
       input.h-contour-line-width#h-contour-line-width(type='range', min='0.5', max='8', step='0.5', value=lineWidth)
       .h-heatmap-threshold-legend
-        span.h-threshold-blue Below: cortex
-        span.h-threshold-red At/above: medulla
+        span.h-threshold-cortex-legend(style={color: colors.cortex}) Below: cortex
+        span.h-threshold-medulla-legend(style={color: colors.medulla}) At/above: medulla
       button.btn.btn-sm.btn-primary.h-mask-save(type='button', disabled=!canSave || saving) Save contour annotations
     else
       p No heatmap annotations are available on this slide.

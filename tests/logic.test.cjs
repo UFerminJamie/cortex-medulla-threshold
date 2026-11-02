@@ -28,3 +28,9 @@ test('formats threshold values consistently in saved contour names', () => {
     assert.equal(logic.formatThreshold(-1.2), '-1.2');
     assert.equal(logic.formatThreshold(2.3000001), '2.3');
 });
+
+test('converts color picker values to RGB channels', () => {
+    assert.deepEqual(logic.colorRgb('#0000ff'), [0, 0, 255]);
+    assert.deepEqual(logic.colorRgb('#ffa500'), [255, 165, 0]);
+    assert.equal(logic.colorRgb('invalid'), null);
+});

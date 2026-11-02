@@ -2,6 +2,15 @@ function formatThreshold(threshold) {
     return String(Number(threshold.toFixed(1)));
 }
 
+function colorRgb(color) {
+    const match = /^#?([\da-f]{6})$/i.exec(String(color || ''));
+    if (!match) {
+        return null;
+    }
+    const value = match[1];
+    return [0, 2, 4].map((offset) => parseInt(value.slice(offset, offset + 2), 16));
+}
+
 function isClassHeatmapSource(source, kind) {
     const className = kind === 'cortex' ? /cortical|cortex/i : /medullary|medulla/i;
     const annotationName = (source || {}).name || '';
@@ -39,4 +48,4 @@ function collectSourceElements(sources) {
     return elements;
 }
 
-module.exports = {formatThreshold, detectRefinedSources, classHeatmapSources, collectSourceElements};
+module.exports = {formatThreshold, colorRgb, detectRefinedSources, classHeatmapSources, collectSourceElements};
