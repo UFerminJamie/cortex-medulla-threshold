@@ -691,7 +691,7 @@ const ThresholdMaskPanel = View.extend({
             return new AnnotationModel({
                 itemId: this.itemId,
                 annotation: {
-                    name: `threshold ${thresholdText} contour ${kind}`,
+                    name: `${kind === 'cortex' ? 'cortical' : 'medullary'} ${thresholdText}`,
                     display: {visible: false},
                     attributes: {thresholdContour: {
                         generatedBy: 'cortex-medulla-threshold-v1',
