@@ -14,11 +14,13 @@ const classes = ['cortex', 'medulla'];
 const ThresholdMaskPanel = View.extend({
     events: {
         'change .h-mask-source': '_sourceChanged',
+        'input .h-mask-color': '_colorChanged',
         'input .h-heatmap-threshold': '_thresholdChanged',
         'change .h-heatmap-threshold': '_thresholdReleased',
         'input .h-heatmap-threshold-number': '_thresholdNumberChanged',
         'change .h-heatmap-threshold-number': '_thresholdNumberReleased',
         'click .h-heatmap-reset': '_resetThreshold',
+        'click .h-threshold-preview-toggle': '_togglePreview',
         'input .h-mask-opacity': '_opacityChanged',
         'input .h-contour-line-width': '_lineWidthChanged',
         'click .h-mask-save': '_save',
@@ -32,9 +34,11 @@ const ThresholdMaskPanel = View.extend({
         this.detectEnabled = true;
         this.viewer = null;
         this.active = false;
+        this.previewVisible = true;
         this.threshold = 0;
         this.opacity = 0.5;
         this.lineWidth = 2;
+        this.colors = {cortex: '#0000ff', medulla: '#ffa500'};
         this.sources = {cortex: '', medulla: ''};
         this.manualSources = {cortex: false, medulla: false};
         this.status = '';
@@ -71,34 +75,47 @@ const ThresholdMaskPanel = View.extend({
         });
     },
 
+    _sourceOptions(models) {
+        return models.map((model) => {
+            const annotation = model.get('annotation') || {};
+            return {
+                id: model.id,
+                name: annotation.name || '',
+                layer: (annotation.attributes || {}).layer || ''
+            };
+        });
+    },
+
     _detectSources(models) {
         if (!models.length) {
             return;
         }
-        const selected = mask.detectRefinedSources(models.map((model) => ({
-            id: model.id,
-            name: (model.get('annotation') || {}).name || ''
-        })));
+        const sources = this._sourceOptions(models);
+        const selected = mask.detectHeatmapSources(sources);
         const changed = classes.filter((kind) => !this.manualSources[kind] &&
             selected[kind] && selected[kind] !== this.sources[kind]);
         changed.forEach((kind) => { this.sources[kind] = selected[kind]; });
         [...new Set(changed.map((kind) => selected[kind]))].forEach((id) => this._loadSource(id));
         if (changed.length) {
-            this._setStatus('Refined heatmaps selected automatically. You can change either source.');
+            this._setStatus('Cortex and medulla heatmaps selected automatically. You can change either source.');
         }
     },
 
     render() {
         const models = this._availableSources();
+        const sources = this._sourceOptions(models);
         if (this.itemId && this.detectEnabled) {
             this._detectSources(models);
         }
         this.$el.html(panelTemplate({
-            sources: models,
+            cortexSources: mask.classHeatmapSources(sources, 'cortex').map((source) => this.collection.get(source.id)),
+            medullaSources: mask.classHeatmapSources(sources, 'medulla').map((source) => this.collection.get(source.id)),
             maskSources: this.sources,
             threshold: this.threshold,
             opacity: this.opacity,
             lineWidth: this.lineWidth,
+            colors: this.colors,
+            previewVisible: this.previewVisible,
             status: this.status,
             saving: this.saving,
             canSave: this.canSave && this._hasDisplayContours()
@@ -178,6 +195,8 @@ const ThresholdMaskPanel = View.extend({
             return;
         }
         this.active = true;
+        this.previewVisible = true;
+        this.render();
         router.setQuery('analysis', null, {trigger: false});
         events.trigger('query:analysis', null);
         this.imageView.controlPanel.$el.addClass('hidden');
@@ -188,7 +207,7 @@ const ThresholdMaskPanel = View.extend({
 
     close() {
         this.active = false;
-        this._clearPreviews();
+        this.previewVisible = false;
         if (this.contourTimer !== null) {
             window.clearTimeout(this.contourTimer);
             this.contourTimer = null;
@@ -203,7 +222,30 @@ const ThresholdMaskPanel = View.extend({
         this.pendingFinal = false;
         this.sourceKey = '';
         this.saveWhenReady = false;
+        this._clearPreviews();
+        this._hideSavedContours();
         this.$el.addClass('hidden');
+    },
+
+    _hideSavedContours() {
+        this.collection.each((model) => {
+            const annotation = model.get('annotation') || {};
+            if (!((annotation.attributes || {}).thresholdContour)) {
+                return;
+            }
+            model.set('displayed', false);
+            if (this.viewer) {
+                this.viewer.removeAnnotation(model);
+            }
+            if (((annotation.display || {}).visible) !== false) {
+                annotation.display = Object.assign({}, annotation.display, {visible: false});
+                model.set('annotation', annotation);
+                // Persist the default visibility as well as hiding the current
+                // viewer instance. Otherwise HistomicsUI shows this annotation
+                // again when it reloads annotations whose visibility is unset.
+                model.save().fail(() => {});
+            }
+        });
     },
 
     dispose() {
@@ -501,9 +543,46 @@ const ThresholdMaskPanel = View.extend({
         this._drawContours();
     },
 
+    _colorChanged(evt) {
+        const kind = evt.currentTarget.dataset.kind;
+        if (!classes.includes(kind)) {
+            return;
+        }
+        this.colors[kind] = evt.currentTarget.value;
+        this.$(`.h-threshold-${kind}-legend`).css('color', this.colors[kind]);
+        this._drawContours();
+    },
+
+    _colorCss(kind, opacity) {
+        const rgb = mask.colorRgb(this.colors[kind]);
+        const values = rgb || (kind === 'medulla' ? [255, 165, 0] : [0, 0, 255]);
+        return opacity === undefined ? `rgb(${values.join(', ')})` : `rgba(${values.join(', ')}, ${opacity})`;
+    },
+
     _lineWidthChanged(evt) {
         this.lineWidth = Number(evt.currentTarget.value);
         this.$('.h-contour-line-width-value').text(`${this.lineWidth}px`);
+    },
+
+    _togglePreview() {
+        this.previewVisible = !this.previewVisible;
+        this._updatePreviewToggle();
+        if (this.previewVisible) {
+            this._drawContours();
+        } else {
+            this._clearPreviews();
+        }
+    },
+
+    _updatePreviewToggle() {
+        const button = this.$('.h-threshold-preview-toggle');
+        button.attr('aria-pressed', String(this.previewVisible));
+        button.attr('title', this.previewVisible ? 'Hide threshold preview' : 'Show threshold preview');
+        button.find('.h-threshold-preview-icon')
+            .toggleClass('icon-eye', this.previewVisible)
+            .toggleClass('icon-eye-off', !this.previewVisible);
+        button.find('.h-threshold-preview-label')
+            .text(this.previewVisible ? 'Hide preview' : 'Show preview');
     },
 
     _schedule(final = false) {
@@ -559,15 +638,15 @@ const ThresholdMaskPanel = View.extend({
     },
 
     _drawContours() {
-        if (!this._hasDisplayContours() || !this.viewer) {
+        if (!this.active || !this.previewVisible || !this._hasDisplayContours() || !this.viewer) {
+            this._clearPreviews();
             return;
         }
         this._clearPreviews();
         classes.forEach((kind) => {
-            const rgb = kind === 'medulla' ? '255, 0, 0' : '0, 0, 255';
             const elements = (this.contours[kind] || []).map((element, index) => Object.assign({}, element, {
                 id: `threshold-${kind}-${index}`,
-                fillColor: `rgba(${rgb}, ${this.opacity})`,
+                fillColor: this._colorCss(kind, this.opacity),
                 lineColor: 'rgba(0, 0, 0, 0)',
                 lineWidth: 0.5
             }));
@@ -604,16 +683,16 @@ const ThresholdMaskPanel = View.extend({
         const thresholdText = mask.formatThreshold(threshold);
         const stats = this.contourStats || {count: null, split: null};
         const models = classes.filter((kind) => (this.contours[kind] || []).length).map((kind) => {
-            const rgb = kind === 'medulla' ? '255, 0, 0' : '0, 0, 255';
             const elements = this.contours[kind].map((element) => Object.assign({}, element, {
-                fillColor: `rgba(${rgb}, ${this.opacity})`,
-                lineColor: `rgb(${rgb})`,
+                fillColor: this._colorCss(kind, this.opacity),
+                lineColor: this._colorCss(kind),
                 lineWidth: this.lineWidth
             }));
             return new AnnotationModel({
                 itemId: this.itemId,
                 annotation: {
                     name: `${kind === 'cortex' ? 'cortical' : 'medullary'} ${thresholdText}`,
+                    display: {visible: false},
                     attributes: {thresholdContour: {
                         generatedBy: 'cortex-medulla-threshold-v1',
                         algorithmVersion: '0.2.0',
@@ -627,6 +706,7 @@ const ThresholdMaskPanel = View.extend({
                         cortexRegionCount: stats.count === null ? null : stats.count - stats.split,
                         coordinateSystem: 'slide-level-0',
                         opacity: this.opacity,
+                        color: this.colors[kind],
                         lineWidth: this.lineWidth
                     }},
                     elements
@@ -646,7 +726,7 @@ const ThresholdMaskPanel = View.extend({
                 return;
             }
             models.forEach((model) => {
-                model.set('displayed', true);
+                model.set('displayed', this.active);
                 this.collection.add(model);
             });
             this._clearPreviews();
