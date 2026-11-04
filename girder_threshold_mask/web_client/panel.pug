@@ -4,14 +4,14 @@
     i.icon-cancel.h-threshold-close(title='Close local analysis')
 .s-panel-content.collapse.in
   .h-threshold-analysis-content
-    p.h-threshold-analysis-note Runs in this browser. The slider shows translucent filled cortex and medulla regions without contour lines; no job is submitted.
+    p.h-threshold-analysis-note Runs in browser. The slider shows cortex and medulla segmented regions.
     if cortexSources.length || medullaSources.length
-      label(for='h-cortex-source') Cortex source heatmap (optional)
+      label(for='h-cortex-source') Cortex source heatmap 
       select.form-control.h-mask-source#h-cortex-source(data-kind='cortex')
         option(value='', selected=!maskSources.cortex) None
         each source in cortexSources
           option(value=source.id, selected=maskSources.cortex === source.id)= (source.get('annotation') || {}).name
-      label(for='h-medulla-source') Medulla source heatmap (optional)
+      label(for='h-medulla-source') Medulla source heatmap 
       select.form-control.h-mask-source#h-medulla-source(data-kind='medulla')
         option(value='', selected=!maskSources.medulla) None
         each source in medullaSources
